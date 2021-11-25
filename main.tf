@@ -19,20 +19,12 @@ resource "azurerm_subnet" "snet" {
   virtual_network_name = azurerm_virtual_network.vnet.name
   address_prefixes     = ["10.1.0.0/24"]
 }
-
-/*resource "azurerm_subnet" "backend" {
-  name                 = "backend"
-  resource_group_name  = azurerm_resource_group.rg.name
-  virtual_network_name = azurerm_virtual_network.vnet.name
-  address_prefixes     = ["10.1.2.0/24"]
-}*/
-
 resource "azurerm_public_ip" "pip" {
   name                = "example-pip"
   resource_group_name = azurerm_resource_group.rg.name
   location            = azurerm_resource_group.rg.location
   allocation_method   = "Static"
-  sku = "Standard"
+  sku                 = "Standard"
 }
 
 #&nbsp;since these variables are re-used - a locals block makes this more maintainable
@@ -52,11 +44,21 @@ resource "azurerm_application_gateway" "appgw" {
   location            = azurerm_resource_group.rg.location
 
   sku {
-    name = "Standard_v2"
-    tier     = "Standard_v2"
-    capacity = 2
+    name     = "WAF_v2"
+    tier     = "WAF_v2"
   }
 
+  autoscale_configuration {
+    min_capacity = 2
+    max_capacity = 5
+  }
+
+  waf_configuration {
+    enabled          = true
+    firewall_mode    = "Detection"
+    rule_set_type    = "OWASP"
+    rule_set_version = "3.1"
+  }
   gateway_ip_configuration {
     name      = "my-gateway-ip-configuration"
     subnet_id = azurerm_subnet.snet.id
